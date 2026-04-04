@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Search</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 4px 16px rgba(0, 0, 0, .04);
+    }
+
+    .source-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #6366f1;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th {
+      background: #f8f7ff;
+      color: #4c4085;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 2px solid #e5e7eb;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th:hover {
+      background: #ede9fe;
+    }
+
+    th .sort-arrow {
+      margin-left: 4px;
+      opacity: 0.4;
+      font-size: 0.7rem;
+    }
+
+    th.sorted .sort-arrow {
+      opacity: 1;
+      color: #6366f1;
+    }
+
+    td {
+      padding: 11px 16px;
+      font-size: 0.875rem;
+      color: #374151;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+      max-width: 240px;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: #fafafa;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #6b7280;
+      transition: color .3s;
+    }
+
+    .step-item.active {
+      color: #4f46e5;
+      font-weight: 500;
+    }
+
+    .step-item.done {
+      color: #16a34a;
+    }
+
+    .step-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .source-link {
+      color: #6366f1;
+      text-decoration: none;
+      font-size: 0.72rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      margin-top: 3px;
+      opacity: 0.8;
+    }
+
+    .source-link:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+
+    .tag-input-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 6px 10px;
+      min-height: 40px;
+      cursor: text;
+      background: white;
+      transition: border-color .2s;
+    }
+
+    .tag-input-wrapper:focus-within {
+      border-color: #6366f1;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, .1);
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #ede9fe;
+      color: #5b21b6;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+
+    .tag button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #7c3aed;
+      font-size: 0.9rem;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .tag-input {
+      border: none;
+      outline: none;
+      font-size: 0.85rem;
+      min-width: 120px;
+      flex: 1;
+      font-family: inherit;
+    }
+
+    #table-wrapper {
+      overflow-x: auto;
+    }
+
+    .query-example {
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .query-example:hover {
+      background: #ede9fe;
+      border-color: #a78bfa;
+      color: #5b21b6;
+    }
+
+    .cache-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f0fdf4;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #6366f1;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+
+    .link-btn:hover {
+      background: #4f46e5;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="text-xl">🔍</div>
+      <h1 class="font-semibold text-gray-800 text-base">Agentic Search</h1>
+      <span class="text-gray-300 text-sm">|</span>
+      <span class="text-gray-500 text-sm">Turn any query into a structured entity table</span>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-10">
+
+    <div class="text-center mb-10">
+      <h2 class="text-4xl font-bold mb-3">
+        <span class="gradient-text">Discover. Extract. Organize.</span>
+      </h2>
+      <p class="text-gray-500 text-lg max-w-xl mx-auto">
+        Enter a topic! We'll search the web, scrape sources, and use AI to build a structured table with every fact
+        traced back to its source.
+      </p>
+    </div>
+
+    <!-- Search Box -->
+    <div class="card p-6 mb-6 max-w-3xl mx-auto">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Search query</label>
+      <div class="flex gap-3">
+        <input id="query-input" type="text" placeholder='e.g. "Python frameworks comparison"'
+          class="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+        <button id="search-btn" onclick="runSearch()"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          Search
+        </button>
+      </div>
+
+      <!-- Custom columns -->
+      <div class="mt-4">
+        <label class="block text-xs font-medium text-gray-500 mb-1.5">
+          Extra columns to include <span class="text-gray-400 font-normal">(type and press Enter)</span>
+        </label>
+        <div class="tag-input-wrapper" id="tag-wrapper" onclick="document.getElementById('tag-input').focus()">
+          <input id="tag-input" class="tag-input" placeholder="e.g. Framework Link, Founded Year…"
+            onkeydown="handleTagInput(event)" />
+        </div>
+      </div>
+
+      <!-- Sources slider -->
+      <div class="mt-4 flex items-center gap-3">
+        <label class="text-xs text-gray-500 whitespace-nowrap">Sources to search:</label>
+        <input id="max-results" type="range" min="4" max="12" value="8" class="w-28 accent-indigo-600"
+          oninput="document.getElementById('results-val').textContent=this.value" />
+        <span id="results-val" class="text-xs font-medium text-indigo-600 w-4">8</span>
+      </div>
+
+      <!-- Examples -->
+      <div class="mt-4">
+        <p class="text-xs text-gray-400 mb-2">Try an example:</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="query-example badge border border-indigo-200 text-indigo-700 py-1 px-3"
+            onclick="setQuery(this)">AI startups in healthcare</span>
+          <span class="query-example badge border border-indigo-200 text-indigo-700 py-1 px-3"
+            onclick="setQuery(this)">top pizza places in Brooklyn</span>
+          <span class="query-example badge border border-indigo-200 text-indigo-700 py-1 px-3"
+            onclick="setQuery(this)">open source database tools</span>
+          <span class="query-example badge border border-indigo-200 text-indigo-700 py-1 px-3"
+            onclick="setQuery(this)">best noise cancelling headphones 2024</span>
+          <span class="query-example badge border border-indigo-200 text-indigo-700 py-1 px-3"
+            onclick="setQuery(this)">Python web frameworks comparison</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="hidden card p-8 mb-6 max-w-3xl mx-auto">
+      <div class="flex flex-col items-center gap-6">
+        <div class="spinner"></div>
+        <div class="space-y-2 text-center">
+          <div class="step-item" id="step-search">
+            <div class="step-dot">1</div> Searching the web…
+          </div>
+          <div class="step-item" id="step-scrape">
+            <div class="step-dot">2</div> Scraping pages in parallel…
+          </div>
+          <div class="step-item" id="step-schema">
+            <div class="step-dot">3</div> Inferring data schema…
+          </div>
+          <div class="step-item" id="step-extract">
+            <div class="step-dot">4</div> Extracting entities with AI…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="error-box" class="hidden card p-6 mb-6 max-w-3xl mx-auto border-red-100">
+      <div class="flex items-start gap-3">
+        <div class="text-red-500 text-xl">⚠️</div>
+        <div>
+          <p class="font-medium text-red-700 text-sm">Something went wrong</p>
+          <p id="error-msg" class="text-red-500 text-sm mt-1"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div class="flex items-center gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-semibold text-gray-800 text-lg" id="result-title"></h3>
+              <span id="cache-indicator" class="hidden cache-badge">⚡ Cached</span>
+            </div>
+            <p class="text-gray-400 text-sm" id="result-meta"></p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="exportCSV()"
+            class="text-sm border border-gray-300 hover:border-indigo-400 text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export CSV
+          </button>
+          <button onclick="exportJSON()"
+            class="text-sm border border-gray-300 hover:border-indigo-400 text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            Export JSON
+          </button>
+        </div>
+      </div>
+
+      <div class="card" id="table-wrapper">
+        <table id="result-table">
+          <thead id="table-head"></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+
+      <div class="mt-4 card p-4" id="source-legend">
+        <p class="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wider">Sources Scraped</p>
+        <ul id="source-list" class="space-y-1.5"></ul>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="text-center text-xs text-gray-400 py-8">
+    Powered by Serper · Groq (Llama 3.3 70B) · FastAPI
+  </footer>
+
+  <script>
+    let currentResult = null;
+    let customTags = [];
+    let sortCol = null;
+    let sortAsc = true;
+
+    // ── Tag input (custom columns) ──────────────────────────────────────────
+    function handleTagInput(e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = e.target.value.trim().replace(/,$/, '');
+        if (val && !customTags.includes(val)) {
+          customTags.push(val);
+          renderTags();
+        }
+        e.target.value = '';
+      } else if (e.key === 'Backspace' && !e.target.value && customTags.length) {
+        customTags.pop();
+        renderTags();
+      }
+    }
+
+    function renderTags() {
+      const wrapper = document.getElementById('tag-wrapper');
+      const input = document.getElementById('tag-input');
+      wrapper.querySelectorAll('.tag').forEach(t => t.remove());
+      customTags.forEach((tag, i) => {
+        const el = document.createElement('span');
+        el.className = 'tag';
+        el.innerHTML = `${escHtml(tag)}<button onclick="removeTag(${i})">×</button>`;
+        wrapper.insertBefore(el, input);
+      });
+    }
+
+    function removeTag(i) {
+      customTags.splice(i, 1);
+      renderTags();
+    }
+
+    // ── Query examples ──────────────────────────────────────────────────────
+    function setQuery(el) {
+      document.getElementById('query-input').value = el.textContent;
+    }
+
+    document.getElementById('query-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') runSearch();
+    });
+
+    // ── Step animation ───────────────────────────────────────────────────────
+    const STEPS = ['step-search', 'step-scrape', 'step-schema', 'step-extract'];
+    let stepTimer = null;
+
+    function startStepAnimation() {
+      let i = 0;
+      STEPS.forEach(id => document.getElementById(id).className = 'step-item');
+      stepTimer = setInterval(() => {
+        if (i > 0) document.getElementById(STEPS[i - 1]).className = 'step-item done';
+        if (i < STEPS.length) { document.getElementById(STEPS[i]).className = 'step-item active'; i++; }
+      }, 2000);
+    }
+
+    function stopStepAnimation() {
+      if (stepTimer) clearInterval(stepTimer);
+      STEPS.forEach(id => document.getElementById(id).className = 'step-item done');
+    }
+
+    function show(id) { document.getElementById(id).classList.remove('hidden'); }
+    function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+    // ── Main search ──────────────────────────────────────────────────────────
+    async function runSearch() {
+      const query = document.getElementById('query-input').value.trim();
+      if (!query) return;
+      const maxResults = parseInt(document.getElementById('max-results').value);
+
+      hide('results'); hide('error-box'); show('loading');
+      document.getElementById('search-btn').disabled = true;
+      startStepAnimation();
+
+      try {
+        const resp = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, max_results: maxResults, custom_columns: customTags })
+        });
+        if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || `HTTP ${resp.status}`); }
+        const data = await resp.json();
+        currentResult = data;
+        stopStepAnimation();
+        hide('loading');
+        renderResults(data);
+      } catch (err) {
+        stopStepAnimation(); hide('loading');
+        document.getElementById('error-msg').textContent = err.message;
+        show('error-box');
+      } finally {
+        document.getElementById('search-btn').disabled = false;
+      }
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────
+    function renderResults(data) {
+      document.getElementById('result-title').textContent =
+        `${data.entity_type} (${data.rows.length} found)`;
+      document.getElementById('result-meta').textContent =
+        `Query: "${data.query}" · ${data.sources_scraped} sources scraped`;
+
+      const cacheEl = document.getElementById('cache-indicator');
+      data.from_cache ? cacheEl.classList.remove('hidden') : cacheEl.classList.add('hidden');
+
+      renderTable(data);
+      renderSources(data);
+      show('results');
+    }
+
+    function renderTable(data) {
+      const { columns, rows } = data;
+
+      const thead = document.getElementById('table-head');
+      thead.innerHTML = `<tr><th onclick="sortTable(null)">#<span class="sort-arrow">↕</span></th>` +
+        columns.map(c => `<th onclick="sortTable('${escHtml(c)}')">${escHtml(c)}<span class="sort-arrow">↕</span></th>`).join('') +
+        `</tr>`;
+
+      rebuildBody(data);
+    }
+
+    function rebuildBody(data) {
+      const { columns, rows } = data;
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      const sorted = [...rows];
+      if (sortCol) {
+        sorted.sort((a, b) => {
+          const av = String(a.cells[sortCol]?.value ?? '');
+          const bv = String(b.cells[sortCol]?.value ?? '');
+          return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+        });
+      }
+
+      sorted.forEach((row, idx) => {
+        const cells = columns.map(col => {
+          const cell = row.cells[col] || { value: 'N/A', source_url: null };
+          const val = String(cell.value ?? 'N/A').trim();
+
+          // Detect if value is a URL, or column name hints at a link
+          const isUrl = val.startsWith('http://') || val.startsWith('https://');
+          // const colLooksLikeLink = /link|url|website|site|page|href/i.test(col);s
+
+          if (isUrl) {
+            return `<td>
+              <a class="link-btn" href="${escHtml(val)}" target="_blank" rel="noopener">
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Visit
+              </a>
+            </td>`;
+          }
+
+          const src = cell.source_url
+            ? `<br/><a class="source-link" href="${cell.source_url}" target="_blank" rel="noopener">
+                <span class="source-dot"></span>${safeHostname(cell.source_url)}
+              </a>`
+            : '';
+          return `<td>${escHtml(val)}${src}</td>`;
+        }).join('');
+
+        tbody.innerHTML += `<tr><td class="text-gray-400 font-medium text-xs">${idx + 1}</td>${cells}</tr>`;
+      });
+
+      document.querySelectorAll('th').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (!arrow) return;
+        const isActive = th.textContent.replace('↕', '').replace('↑', '').replace('↓', '').trim() === sortCol;
+        th.classList.toggle('sorted', isActive);
+        if (isActive) arrow.textContent = sortAsc ? '↑' : '↓';
+        else arrow.textContent = '↕';
+      });
+    }
+
+    function sortTable(col) {
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = true; }
+      if (currentResult) rebuildBody(currentResult);
+    }
+
+    function renderSources(data) {
+      const allUrls = new Set();
+      data.rows.forEach(row => {
+        data.columns.forEach(col => {
+          const src = row.cells[col]?.source_url;
+          if (src) allUrls.add(src);
+        });
+      });
+      const ul = document.getElementById('source-list');
+      ul.innerHTML = '';
+      [...allUrls].forEach(url => {
+        ul.innerHTML += `<li class="text-xs text-gray-500 flex items-center gap-2">
+        <span class="source-dot flex-shrink-0"></span>
+        <a href="${url}" target="_blank" rel="noopener" class="source-link" style="font-size:.8rem">${safeHostname(url)}</a>
+        <span class="text-gray-300 truncate max-w-xs">${escHtml(url)}</span>
+      </li>`;
+      });
+    }
+
+    // ── Exports ──────────────────────────────────────────────────────────────
+    function exportCSV() {
+      if (!currentResult) return;
+      const { columns, rows } = currentResult;
+      let csv = columns.join(',') + '\n';
+      rows.forEach(row => {
+        csv += columns.map(col => `"${String(row.cells[col]?.value ?? '').replace(/"/g, '""')}"`).join(',') + '\n';
+      });
+      download('results.csv', csv, 'text/csv');
+    }
+
+    function exportJSON() {
+      if (!currentResult) return;
+      download('results.json', JSON.stringify(currentResult, null, 2), 'application/json');
+    }
+
+    function download(filename, content, type) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([content], { type }));
+      a.download = filename; a.click();
+    }
+
+    // ── Utils ────────────────────────────────────────────────────────────────
+    function escHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function safeHostname(url) {
+      try { return new URL(url).hostname; } catch { return url; }
+    }
+  </script>
+</body>
+
+</html>
