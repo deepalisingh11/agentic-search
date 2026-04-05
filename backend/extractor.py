@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import time
 import urllib.parse
 
 from groq import Groq, APIStatusError, RateLimitError
@@ -18,8 +19,8 @@ from models import CellValue, EntityRow, SearchResult
 
 logger = logging.getLogger(__name__)
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
-# GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL_FAST = "llama-3.1-8b-instant"
+GROQ_MODEL_SMART = "llama-3.3-70b-versatile"
 
 def _get_client() -> Groq:
     api_key = os.environ.get("GROQ_API_KEY")
@@ -49,9 +50,10 @@ def _groq_call(client: Groq, *, model: str, messages: list, temperature: float, 
 
             # Daily token limit (TPD) — retrying immediately won't help
             if "tokens per day" in err_msg or "TPD" in err_msg:
+                is_smart = "70b" in model.lower() or "versatile" in model.lower()
+                suggestion = " Try switching to ⚡ Fast (8B) mode above." if is_smart else " Consider upgrading your Groq plan."
                 raise ValueError(
-                    f"Daily token limit reached for model '{model}'.{wait_hint} "
-                    f"Please wait and try again later, or switch to a different model."
+                    f"Daily token limit reached for model '{model}'.{wait_hint}{suggestion}"
                 ) from e
 
             # Per-minute limit (TPM/RPM) — back off and retry
@@ -65,11 +67,13 @@ def _groq_call(client: Groq, *, model: str, messages: list, temperature: float, 
             err_type = e.body.get("error", {}).get("type", "") if isinstance(e.body, dict) else ""
             err_msg  = e.body.get("error", {}).get("message", str(e)) if isinstance(e.body, dict) else str(e)
 
+            # NEW
             if code == 413 or err_type == "tokens":
+                is_fast = "8b" in model.lower() or "instant" in model.lower()
+                suggestion = " Or try switching to 🧠 Smart (70B), which has a larger token limit." if is_fast else " Try reducing 'Sources to search' or the query length."
                 raise ValueError(
                     f"Request too large for Groq model '{model}'. "
-                    f"Try reducing 'Sources to search' or the query length. "
-                    f"(Detail: {err_msg})"
+                    f"Try reducing 'Sources to search' or the query length.{suggestion}"
                 ) from e
 
             if code == 429:
@@ -110,7 +114,7 @@ def _parse_json_array(text: str) -> list:
 # Phase 1: Schema inference
 # ---------------------------------------------------------------------------
 
-def _infer_schema(client: Groq, query: str, custom_columns: list[str]) -> dict:
+def _infer_schema(client: Groq, query: str, custom_columns: list[str], model: str) -> dict:
     custom_hint = ""
     if custom_columns:
         custom_hint = (
@@ -138,15 +142,7 @@ Column guidelines:
 - 4 columns minimum, 6 maximum (not counting any user-requested extra columns)
 - Do NOT include a link or URL column"""
 
-    # response = client.chat.completions.create(
-    #     model=GROQ_MODEL,
-    #     messages=[{"role": "user", "content": prompt}],
-    #     temperature=0.1,
-    #     max_tokens=300,
-    # )
-    # schema = _parse_json_response(response.choices[0].message.content)
-
-    raw = _groq_call(client, model=GROQ_MODEL, messages=[{"role": "user", "content": prompt}],
+    raw = _groq_call(client, model=model, messages=[{"role": "user", "content": prompt}],
                      temperature=0.1, max_tokens=300)
     schema = _parse_json_response(raw)
 
@@ -173,6 +169,7 @@ def _extract_entities(
     query: str,
     columns: list[str],
     pages: list[dict],
+    model: str,
 ) -> list[dict]:
     context = _build_context(pages)
     cols_str = ", ".join(f'"{c}"' for c in columns)
@@ -203,15 +200,7 @@ Return ONLY a JSON array:
   }}
 ]"""
 
-    # response = client.chat.completions.create(
-    #     model=GROQ_MODEL,
-    #     messages=[{"role": "user", "content": prompt}],
-    #     temperature=0.1,
-    #     max_tokens=4000,
-    # )
-    # return _parse_json_array(response.choices[0].message.content)
-
-    raw = _groq_call(client, model=GROQ_MODEL, messages=[{"role": "user", "content": prompt}],
+    raw = _groq_call(client, model=model, messages=[{"role": "user", "content": prompt}],
                      temperature=0.1, max_tokens=4000)
     return _parse_json_array(raw)
 
@@ -228,20 +217,23 @@ async def extract_entities(
     query: str,
     pages: list[dict],
     custom_columns: list[str] | None = None,
+    use_fast_model: bool = True,
 ) -> SearchResult:
     client = _get_client()
     custom_columns = custom_columns or []
+    model = GROQ_MODEL_FAST if use_fast_model else GROQ_MODEL_SMART
+    logger.info(f"Using model: {model}")
 
     # Phase 1: infer schema
     logger.info("Phase 1: inferring schema...")
-    schema = _infer_schema(client, query, custom_columns)
+    schema = _infer_schema(client, query, custom_columns, model)
     entity_type = schema.get("entity_type", "Results")
     columns = schema.get("columns", ["Name", "Description"])
     logger.info(f"Schema: {entity_type} | Columns: {columns}")
 
     # Phase 2: extract entities
     logger.info("Phase 2: extracting entities...")
-    raw_rows = _extract_entities(client, query, columns, pages)
+    raw_rows = _extract_entities(client, query, columns, pages, model)
 
     # Build typed rows
     url_map = {i + 1: p["url"] for i, p in enumerate(pages)}

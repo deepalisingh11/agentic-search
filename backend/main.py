@@ -66,7 +66,7 @@ async def run_search(req: QueryRequest):
         raise HTTPException(status_code=502, detail="Could not scrape any pages. Try again.")
 
     try:
-        result = await extract_entities(req.query, pages, req.custom_columns)
+        result = await extract_entities(req.query, pages, req.custom_columns, req.use_fast_model)
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
