@@ -12,7 +12,7 @@ Enter a query like `"Python Frameworks comparision"` and the system:
 
 1. **Searches** the web via Serper.dev (Google Search API)
 2. **Scrapes** the top results in parallel using async HTTP
-3. **Infers** a query-appropriate schema via LLM (e.g., Name · Funding Stage · Therapeutic Area · HQ · Founded)
+3. **Infers** a query-appropriate schema via LLM (e.g., Framework Name · Community Size · Latest Version · Database Support)
 4. **Extracts** up to 12 entities from scraped content, with every cell traced to its source URL
 5. **Caches** results to disk (1-hour TTL) so repeat queries return instantly
 6. **Renders** a sortable table with clickable source attribution, CSV/JSON export, and custom columns
@@ -48,13 +48,13 @@ Single-file HTML frontend (frontend/index.html)
 
 - **Dynamic schema inference:** columns are query-aware ("pizza places" gets Rating/Price/Neighborhood, not generic Description/Notes)
 - **Per-cell source tracing:** every value links back to the page it came from
-- **Custom columns:** inject any extra column via the UI (e.g., "Founded Year", "GitHub Link")
+- **Custom columns:** inject any extra column via the UI (e.g., "Founded Year", "Product Link")
 - **Fallback link generation:** when a URL can't be reliably extracted, a Google search link is generated instead of leaving a blank or hallucinated value
 - **Parallel scraping:** all pages fetched concurrently; scraping 8 pages takes the same wall-clock time as 1
 - **File-based caching:** MD5-keyed `.cache/` directory with 1-hour TTL; zero external dependencies
 - **Sortable table UI:** click any column header to sort; cached results show a ⚡ badge
 - **CSV / JSON export:** one-click download of full results
-- **Model toggle:** switch between Fast (8B) and Smart (70B) directly from the UI
+- **Model toggle:** switch between Fast (Llama-3.1-8B) and Smart (Llama-3.3-70B) directly from the UI
 
 ---
 
@@ -64,7 +64,7 @@ Single-file HTML frontend (frontend/index.html)
 
 **Serper.dev over DIY scraping.** Reliable, fast, and ~$0.001/query with 2,500 free queries/month. Avoids the rate-limiting and blocking issues of unofficial scraping approaches.
 
-**Text truncation at 3,000 chars/page.** With up to 12 pages, the extraction prompt stays under ~40k tokens — well within Groq's context window — while still providing enough signal per page.
+**Text truncation at 3,000 chars/page.** With up to 12 pages, the extraction prompt stays under ~40k tokens, well within Groq's context window, while still providing enough signal per page.
 
 **File-based TTL cache.** Identical queries (same query + max_results + custom columns) are served from disk with no extra infrastructure. The cache key is an MD5 hash of normalized inputs.
 
@@ -76,7 +76,7 @@ Single-file HTML frontend (frontend/index.html)
 
 - Python 3.9+
 - [Groq API key](https://console.groq.com) (free)
-- [Serper.dev API key](https://serper.dev) (free — 2,500 queries/month)
+- [Serper.dev API key](https://serper.dev) (free 2,500 queries/month)
 
 ### Environment Variables
 
@@ -152,7 +152,7 @@ agentic-search/
 │   └── requirements.txt
 ├── frontend/
 │   └── index.html       # Single-file UI (Tailwind + vanilla JS)
-├── .cache/              # Auto-created at runtime; gitignored
+├── .cache/              # Auto-created at runtime (gitignored)
 ├── .env                 # Local secrets (gitignored)
 ├── .env.example
 ├── render.yaml
@@ -166,12 +166,12 @@ agentic-search/
 **Groq token limits.** Groq's free tier enforces both per-minute (TPM/RPM) and daily (TPD) token limits. Each search consumes 2 LLM calls. Heavy use can trigger a 429 rate-limit error, which the backend surfaces with a clear message and retries up to 3 times with backoff.
 
 **Model toggle as a workaround.** The UI exposes a ⚡ Fast / 🧠 Smart toggle:
-- **Fast (8B) — `llama-3.1-8b-instant`**: lower latency (~3–5s), higher TPM allowance, recommended for most queries.
-- **Smart (70B) — `llama-3.3-70b-versatile`**: better extraction quality on complex queries, but uses more daily tokens and is ~2–3× slower.
+- **Fast (8B) `llama-3.1-8b-instant`**: lower latency (~3–5s), higher TPM allowance, recommended for most queries, but less token limit per query.  
+- **Smart (70B) `llama-3.3-70b-versatile`**: better extraction quality on complex queries, but uses more daily tokens and is ~2–3× slower.
 
-If you hit a daily token limit on 70B, switch to Fast mode. If you hit a per-minute limit, wait ~60s and retry: the backend is designed to surface the estimated wait time from Groq's error response.
+If you hit a daily token limit on 70B, switch to Fast (8B) mode. If you hit a per-minute limit, wait ~60s and retry: the backend is designed to surface the estimated wait time from Groq's error response. 
 
-**Request size limits.** Sending too many sources (12+) with large pages can exceed Groq's per-request token cap for the 8B model. Reduce "Sources to search" in the UI or switch to 70B (which has a larger per-request limit).
+**Request size limits.** Sending too many sources (12+) with large pages can exceed Groq's per-request token cap for even the 8B model. Reduce "Sources to search" in the UI or switch to 70B (which has a larger per-request limit).
 
 **JavaScript-heavy pages.** The scraper uses plain HTTP, no headless browser. SPAs that require JS rendering won't yield useful content.
 
