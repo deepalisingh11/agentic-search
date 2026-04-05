@@ -175,6 +175,19 @@ If you hit a daily token limit on 70B, switch to Fast mode. If you hit a per-min
 
 **JavaScript-heavy pages.** The scraper uses plain HTTP, no headless browser. SPAs that require JS rendering won't yield useful content.
 
-**LLM hallucination.** Despite strict prompting, the model may occasionally infer values not present verbatim in source text. Per-cell source links make every claim independently verifiable. Hallucinated URLs are caught and replaced with a Google fallback search link.
+**LLM hallucination.** Despite strict prompting, the model may occasionally infer values that are not verbatim present in the source text. Per-cell source links make every claim independently verifiable. Hallucinated URLs are caught and replaced with a Google fallback search link. This is handled in most cases, but please note that in some cases, the model still returns a fake URL that does not exist. 
 
 **Serper free tier.** 2,500 queries/month. Each search call uses one credit.
+
+## Possible Extensions
+
+- **Embedding-based RAG router:** replace keyword scoring with local sentence-transformer embeddings for better section selection
+- **Critic agent:** hallucination detection and relevance scoring, already built
+- **Query decomposition:** break complex queries like "funded AI startups in healthcare founded after 2020" into sub-queries, run them independently, merge results
+- **Persistent cache:** move from FAISS on disk to a hosted vector database (Pinecone, Qdrant free tier) for cache that survives deploys
+- **User feedback loop:** thumbs up/down per entity to flag bad extractions and improve cache quality over time
+- **Iterative refinement:** after seeing initial results, generate follow-up queries specifically targeting the entities found to fill their missing fields
+- **Negative filtering:** let users specify what to exclude ("no aggregator sites", "no listicles") and inject that into query generation
+- **Entity-driven querying:** once an entity is found, automatically search for it directly by name to get its official page, not just the pages that mention it
+- **Streaming extraction:** yield entities to the frontend as they are found rather than waiting for the full batch
+- **Playwright integration:** headless browser scraping for JS-rendered pages (Crunchbase, LinkedIn)
