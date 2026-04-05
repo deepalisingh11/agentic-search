@@ -319,6 +319,23 @@
         <span id="results-val" class="text-xs font-medium text-indigo-600 w-4">8</span>
       </div>
 
+      <!-- Model toggle -->
+      <div class="mt-3 flex items-center gap-3">
+        <label class="text-xs text-gray-500 whitespace-nowrap">Model:</label>
+        <div
+          style="display:flex; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; font-size:0.75rem; font-weight:500;">
+          <button id="btn-fast" onclick="setModel(true)"
+            style="padding:6px 12px; cursor:pointer; border:none; background:#4f46e5; color:white;">
+            ⚡ Fast (8B)
+          </button>
+          <button id="btn-smart" onclick="setModel(false)"
+            style="padding:6px 12px; cursor:pointer; border:none; background:white; color:#6b7280;">
+            🧠 Smart (70B)
+          </button>
+        </div>
+        <span id="model-hint" class="text-xs text-gray-400">Lower latency, higher TPM limit</span>
+      </div>
+
       <!-- Examples -->
       <div class="mt-4">
         <p class="text-xs text-gray-400 mb-2">Try an example:</p>
@@ -429,6 +446,7 @@
     let customTags = [];
     let sortCol = null;
     let sortAsc = true;
+    let useFastModel = true;
 
     // ── Tag input (custom columns) ──────────────────────────────────────────
     function handleTagInput(e) {
@@ -461,6 +479,22 @@
     function removeTag(i) {
       customTags.splice(i, 1);
       renderTags();
+    }
+
+    // ── Model toggle ─────────────────────────────────────────────────────────
+    function setModel(fast) {
+      useFastModel = fast;
+      const btnFast = document.getElementById('btn-fast');
+      const btnSmart = document.getElementById('btn-smart');
+
+      btnFast.style.background = fast ? '#4f46e5' : 'white';
+      btnFast.style.color = fast ? 'white' : '#6b7280';
+      btnSmart.style.background = !fast ? '#4f46e5' : 'white';
+      btnSmart.style.color = !fast ? 'white' : '#6b7280';
+
+      document.getElementById('model-hint').textContent = fast
+        ? 'llama-3.1-8b-instant: Lower latency, higher TPM limit'
+        : 'llama-3.3-70b-versatile: Better quality, uses more daily tokens';
     }
 
     // ── Query examples ──────────────────────────────────────────────────────
@@ -507,7 +541,7 @@
         const resp = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, max_results: maxResults, custom_columns: customTags })
+          body: JSON.stringify({ query, max_results: maxResults, custom_columns: customTags, use_fast_model: useFastModel })
         });
         if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || `HTTP ${resp.status}`); }
         const data = await resp.json();
