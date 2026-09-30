@@ -179,10 +179,10 @@ If you hit a daily token limit on 70B, switch to Fast (8B) mode. If you hit a pe
 
 **Serper free tier.** 2,500 queries/month. Each search call uses one credit.
 
-## Possible Extensions
+## Possible Future Extensions
 
 - **Embedding-based RAG router:** replace keyword scoring with local sentence-transformer embeddings for better section selection
-- **Critic agent:** hallucination detection and relevance scoring, already built
+- **Critic agent:** hallucination detection and relevance scoring
 - **Query decomposition:** break complex queries like "funded AI startups in healthcare founded after 2020" into sub-queries, run them independently, merge results
 - **Persistent cache:** move from FAISS on disk to a hosted vector database (Pinecone, Qdrant free tier) for cache that survives deploys
 - **User feedback loop:** thumbs up/down per entity to flag bad extractions and improve cache quality over time
