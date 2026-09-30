@@ -181,10 +181,10 @@ If you hit a daily token limit on 70B, switch to Fast (8B) mode. If you hit a pe
 
 ## Possible Future Extensions
 
-- **Embedding-based RAG router:** replace keyword scoring with local sentence-transformer embeddings for better section selection
+- **Embedding-based RAG router:** replace fixed-length truncation with local sentence-transformer embeddings for better section selection
 - **Critic agent:** hallucination detection and relevance scoring
 - **Query decomposition:** break complex queries like "funded AI startups in healthcare founded after 2020" into sub-queries, run them independently, merge results
-- **Persistent cache:** move from FAISS on disk to a hosted vector database (Pinecone, Qdrant free tier) for cache that survives deploys
+- **Persistent cache:** move from the file-based cache to a hosted vector database store (Pinecone, Qdrant free tier) that survives redeploys
 - **User feedback loop:** thumbs up/down per entity to flag bad extractions and improve cache quality over time
 - **Iterative refinement:** after seeing initial results, generate follow-up queries specifically targeting the entities found to fill their missing fields
 - **Negative filtering:** let users specify what to exclude ("no aggregator sites", "no listicles") and inject that into query generation
